@@ -1,11 +1,20 @@
 use clap::Parser;
-use std::{process::Command, fs::OpenOptions, io::prelude::*, path::Path};
+use std::{fs::OpenOptions, io::prelude::*, path::Path, time::Duration, num::ParseIntError};
 use chrono::{DateTime, Utc};
 
 #[derive(Parser, Debug)]
 struct Args {
-    name: String,
-    count: u8,
+    /// Number of commits to make.
+    #[arg(default_value_t = 1)]
+    commits: u8,
+
+    /// Number of days to commit for.
+    #[arg(default_value_t = 1)]
+    days: u8,
+
+    // /// Start date for commits.
+    // #[arg(value_parser = parse_duration, default_value_t = Utc::now().timestamp().parse_duration)]
+    // start_date: Duration,
 }
 
 fn main() {
@@ -45,11 +54,18 @@ fn edit_file(args: Args) {
         .open("ACTIVITY.md")
         .unwrap();
 
-    for _ in 0..args.count {
+    for count in 0..args.days {
         let now: DateTime<Utc> = Utc::now();
 
-        if let Err(e) = writeln!(file, "{} - {}\r", now, args.name) {
+        if let Err(e) = writeln!(file, "{} - {}\r", now, count) {
             eprintln!("Couldn't write to file: {}", e);
         }
     }
+}
+
+
+// TODO: use with start_date arg.
+fn _parse_duration(arg: &str) -> Result<Duration, ParseIntError> {
+    let seconds = arg.parse()?;
+    return Ok(std::time::Duration::from_secs(seconds));
 }
