@@ -2,7 +2,7 @@ use clap::Parser;
 use std::{fs::OpenOptions, io::prelude::Write, path::Path, process::Command};
 use chrono::{Utc, Duration, NaiveDate, NaiveDateTime, DateTime};
 
-const FILE_NAME: &str = "ACTIVITY-TEST.md";
+const FILE_NAME: &str = "ACTIVITY.md";
 const FILE_TITLE: &str = "activity";
 
 /// Args for the program.
@@ -118,13 +118,13 @@ fn main() {
 
 
 fn add_and_commit(commit_message: String, date: DateTime<Utc>) {
-    let output_add = Command::new("git")
+    let _output_add = Command::new("git")
         .arg("add")
         .arg(FILE_NAME)
         .output()
         .expect("failed to execute process");
 
-    let output_commit = Command::new("git")
+    let _output_commit = Command::new("git")
         .env("GIT_COMMITTER_DATE", format!("{}", date))
         .arg("commit")
         .arg("-m")
@@ -134,6 +134,6 @@ fn add_and_commit(commit_message: String, date: DateTime<Utc>) {
         .output()
         .expect("failed to execute process");
 
-    println!("add: {:?}", output_add);
-    println!("commit: {:?}", output_commit);
+    // println!("add: {:?}", output_add);
+    // println!("commit: {:?}", output_commit);
 }
