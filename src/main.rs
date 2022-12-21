@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::{fs::OpenOptions, io::prelude::Write, path::Path, process::Command};
-use chrono::{DateTime, Utc, Duration};
+use chrono::{Utc, Duration};
 
 const FILE_NAME: &str = "ACTIVITY-TEST.md";
 const FILE_TITLE: &str = "activity";
@@ -78,29 +78,34 @@ fn main() {
         .open(FILE_NAME)
         .unwrap();
 
-    for count in 0..args.days {
-        let now: DateTime<Utc> = Utc::now();
+    let commits_per_day = args.commits / args.days;
+    let mut commit_count = 0;
 
+    let now = Utc::now();
+    for count in (0..args.days).rev(){
         let date = now - Duration::days(count as i64);
         println!("date: {}", date.date_naive());
 
-        // TODO: optimise the error handling.
-        if let Err(e) = writeln!(file, "{} - {}\r", now, count) {
-            eprintln!("Couldn't write to file: {}", e);
-        }
+        for _ in 0..commits_per_day {
+            // TODO: optimise the error handling.
+            if let Err(e) = writeln!(file, "{} - {}\r", date, commit_count) {
+                eprintln!("Couldn't write to file: {}", e);
+            }
 
-        let message = format!("{} - {}", date, count);
-        // add_and_commit(message);
+            // let message = format!("{} - {}", date, count);
+            // add_and_commit(message);
+            commit_count += 1;
+        }
     }
 
-    // if let Err(e) = writeln!(file, "\n") {
-    //     eprintln!("Couldn't write to file: {}", e);
-    // }
+    if let Err(e) = writeln!(file, "\n") {
+        eprintln!("Couldn't write to file: {}", e);
+    }
     // add_and_commit("save".to_string());
 }
 
 
-fn add_and_commit(commit_message: String) {
+fn _add_and_commit(commit_message: String) {
     Command::new("git")
         .arg("add")
         .arg(FILE_NAME)
