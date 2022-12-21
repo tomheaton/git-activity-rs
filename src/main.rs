@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::{fs::OpenOptions, io::prelude::Write, path::Path, process::Command};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Duration};
 
 const FILE_NAME: &str = "ACTIVITY-TEST.md";
 const FILE_TITLE: &str = "activity";
@@ -8,12 +8,12 @@ const FILE_TITLE: &str = "activity";
 #[derive(Parser, Debug)]
 struct Args {
     /// Number of commits to make.
-    #[arg(default_value_t = 1)]
-    commits: u8,
+    #[arg(default_value_t = 1, short, long)]
+    commits: i16,
 
     /// Number of days to commit for.
-    #[arg(default_value_t = 1)]
-    days: u8,
+    #[arg(default_value_t = 1, short, long)]
+    days: i16,
 
     /// Start date for commits.
     #[arg(default_value_t = Utc::now().date_naive().to_string())]
@@ -26,7 +26,33 @@ fn main() {
     let args = Args::parse();
     println!("{:?}", args);
 
-    // TODO: check current dir is a git repo.
+    // TODO: better error handling.
+    if args.commits < 1 {
+        println!("commits must be greater than 0");
+        return;
+    }
+    if args.days < 1 {
+        println!("days must be greater than 0");
+        return;
+    }
+
+    let output = Command::new("git")
+        .arg("status")
+        .output()
+        .expect("failed to execute process");
+
+    if !output.status.success() {
+        println!("git repo not found!");
+    
+        let output = Command::new("git")
+        .arg("init")
+        .output()
+        .expect("failed to execute process");
+
+        println!("git repo created! (output: {:?})", output);
+    } else {
+        println!("git repo found!");
+    }
 
     if !Path::new(FILE_NAME).exists() {
         println!("file does not exist!");
@@ -37,7 +63,9 @@ fn main() {
             .open(FILE_NAME)
             .unwrap();
 
-        writeln!(new_file, "# {}\n", FILE_TITLE).unwrap();
+        if let Err(e) = writeln!(new_file, "# {}\n", FILE_TITLE) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
         
         println!("file created!");
     } else {
@@ -53,18 +81,36 @@ fn main() {
     for count in 0..args.days {
         let now: DateTime<Utc> = Utc::now();
 
+        let date = now - Duration::days(count as i64);
+        println!("date: {}", date.date_naive());
+
         // TODO: optimise the error handling.
         if let Err(e) = writeln!(file, "{} - {}\r", now, count) {
             eprintln!("Couldn't write to file: {}", e);
         }
 
-        // TODO: git add and commit.
-        let output = Command::new("git")
-            .arg("add")
-            .arg(FILE_NAME)
-            .output()
-            .expect("failed to execute process");
-
-        println!("output: {:?}", output);
+        let message = format!("{} - {}", date, count);
+        // add_and_commit(message);
     }
+
+    // if let Err(e) = writeln!(file, "\n") {
+    //     eprintln!("Couldn't write to file: {}", e);
+    // }
+    // add_and_commit("save".to_string());
+}
+
+
+fn add_and_commit(commit_message: String) {
+    Command::new("git")
+        .arg("add")
+        .arg(FILE_NAME)
+        .output()
+        .expect("failed to execute process");
+
+    Command::new("git")
+        .arg("commit")
+        .arg("-m")
+        .arg(commit_message)
+        .output()
+        .expect("failed to execute process");
 }
