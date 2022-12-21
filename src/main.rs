@@ -1,6 +1,9 @@
 use clap::Parser;
-use std::{fs::OpenOptions, io::prelude::*, path::Path, time::Duration, num::ParseIntError};
+use std::{fs::OpenOptions, io::prelude::Write, path::Path, process::Command};
 use chrono::{DateTime, Utc};
+
+const FILE_NAME: &str = "ACTIVITY-TEST.md";
+const FILE_TITLE: &str = "activity";
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -12,60 +15,56 @@ struct Args {
     #[arg(default_value_t = 1)]
     days: u8,
 
-    // /// Start date for commits.
-    // #[arg(value_parser = parse_duration, default_value_t = Utc::now().timestamp().parse_duration)]
-    // start_date: Duration,
+    /// Start date for commits.
+    #[arg(default_value_t = Utc::now().date_naive().to_string())]
+    start_date: String
 }
 
 fn main() {
     println!("git-activity-rs");
 
     let args = Args::parse();
-
     println!("{:?}", args);
 
-    // let output = Command::new("git")
-    //     .arg("log")
-    //     .output()
-    //     .expect("failed to execute process");
-    // println!("output: {:?}", output.stdout);
+    // TODO: check current dir is a git repo.
 
-    edit_file(args);
-}
+    if !Path::new(FILE_NAME).exists() {
+        println!("file does not exist!");
 
-fn edit_file(args: Args) {
-    let file_exists = Path::new("HISTORY.md").exists();
-
-    if !file_exists {
-        println!("file does not exist");
         let mut new_file = OpenOptions::new()
             .write(true)
             .create(true)
-            .open("ACTIVITY.md")
+            .open(FILE_NAME)
             .unwrap();
 
-        writeln!(new_file, "# history\n").unwrap();
+        writeln!(new_file, "# {}\n", FILE_TITLE).unwrap();
+        
+        println!("file created!");
+    } else {
+        println!("file exists!");
     }
-    println!("file exists");
 
     let mut file = OpenOptions::new()
         .write(true)
         .append(true)
-        .open("ACTIVITY.md")
+        .open(FILE_NAME)
         .unwrap();
 
     for count in 0..args.days {
         let now: DateTime<Utc> = Utc::now();
 
+        // TODO: optimise the error handling.
         if let Err(e) = writeln!(file, "{} - {}\r", now, count) {
             eprintln!("Couldn't write to file: {}", e);
         }
+
+        // TODO: git add and commit.
+        let output = Command::new("git")
+            .arg("add")
+            .arg(FILE_NAME)
+            .output()
+            .expect("failed to execute process");
+
+        println!("output: {:?}", output);
     }
-}
-
-
-// TODO: use with start_date arg.
-fn _parse_duration(arg: &str) -> Result<Duration, ParseIntError> {
-    let seconds = arg.parse()?;
-    return Ok(std::time::Duration::from_secs(seconds));
 }
